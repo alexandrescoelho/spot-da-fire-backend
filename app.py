@@ -111,5 +111,44 @@ def create_save_cluster_data():
     return '', 201
 
 
+# DENSITY CLUSTERING ENDPOINTS
+@app.route('/fire/api/v1.0/fetch-density-clusters', methods=['GET'])
+def fetch_density_clusters():
+    try:
+        lat = request.args.get('lat', default=-5.37895, type=float)
+        lon = request.args.get('lon', default=11.44103, type=float)
+
+        geofire = GeoFire(lat=lat,
+                          lon=lon,
+                          radius=50,
+                          unit='km').config_firebase(cred,
+                                                     auth_domain='nasa-hackathon-team-1.firebaseapp.com',
+                                                     database_URL='https://nasa-hackathon-team-1.firebaseio.com/',
+                                                     storage_bucket='nasa-hackathon-team-1.appspot.com')
+
+        nearby_density_cluster = geofire.query_nearby_objects(query_ref='density-clustering',
+                                                                 geohash_ref='geohash')
+        return json.dumps(nearby_density_cluster)
+
+    except Exception as get_collection:
+        logging.error('something went wrong', get_collection)
+        return '', 500
+
+
+@app.route('/fire/api/v1.0/refresh-density-cluster-data', methods=['GET'])
+def create_save_density_cluster_data():
+    dataset = csvtolist.get_24h_list()
+    fire_spots = get_geo_clusters(dataset, min_samples=40, eps=1.0)
+
+    fire_spots['geohash'] = fire_spots.drop(['cluster', 'color'], axis=1).apply(lambda x: geohash.encode(x.latitude, x.longitude, precision=5), axis=1)
+
+    fire_spots = fire_spots.to_dict(orient='row')
+
+    fire_repo = DensityClusteringRepository()
+    fire_repo.reset(fire_spots)
+
+    return '', 201
+
+
 if __name__ == '__main__':
     app.run()
