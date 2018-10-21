@@ -6,11 +6,15 @@ from firebase_admin import credentials
 
 from repositories.spoted_fire_repository import SpotedFireRepository
 from repositories.brightness_clustering_repository import BrightnessClusteringRepository
+from repositories.density_clustering_repository import DensityClusteringRepository
+
 from util import csvtolist
 
 from ml_models.clustering import get_brightness_clusters
+from ml_models.clustering import get_geo_clusters
 
 from GeoFire.geofire import GeoFire
+import pygeohash as geohash
 
 app = Flask(__name__)
 
@@ -68,6 +72,7 @@ def get_fire_collection():
         return '', 500
 
 
+# BRIGHTNESS CLUSTERING ENDPOINTS
 @app.route('/fire/api/v1.0/fetch-brightness-clusters', methods=['GET'])
 def fetch_brightness_clusters():
     try:
@@ -83,7 +88,7 @@ def fetch_brightness_clusters():
                                                      storage_bucket='nasa-hackathon-team-1.appspot.com')
 
         nearby_brigthness_cluster = geofire.query_nearby_objects(query_ref='brightness-clustering',
-                                                             geohash_ref='geohash')
+                                                                 geohash_ref='geohash')
         return json.dumps(nearby_brigthness_cluster)
 
     except Exception as get_collection:
@@ -96,10 +101,9 @@ def create_save_cluster_data():
     dataset = csvtolist.get_24h_list()
     fire_spots = get_brightness_clusters(dataset)
 
-    import pdb; pdb.set_trace()
-    fire_spots['geohash'] = fire_spots.drop(fire_spots.cluster, axis=1).apply(lambda x: geohash.encode(x.latitude, x.longitude, precision=5), axis=1)
+    fire_spots['geohash'] = fire_spots.drop('cluster', axis=1).apply(lambda x: geohash.encode(x.latitude, x.longitude, precision=5), axis=1)
 
-    fire_spots = fire_spots.to_dict()
+    fire_spots = fire_spots.to_dict(orient='row')
 
     fire_repo = BrightnessClusteringRepository()
     fire_repo.reset(fire_spots)
