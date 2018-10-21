@@ -4,6 +4,7 @@ import pandas as pd
 import io
 
 NASA_ENDPOINT = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/viirs/csv/VNP14IMGTDL_NRT_Global_7d.csv'
+NASA_24H_ENDPOINT = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/viirs/csv/VNP14IMGTDL_NRT_Global_24h.csv'
 
 def get_list():
     # read the csv file from nasa
@@ -14,3 +15,10 @@ def get_list():
 
     records = df.to_dict(orient='row')
     return records
+
+
+def get_24h_list():
+    # read the csv file from nasa
+    req = requests.get(NASA_24H_ENDPOINT)
+    data = io.StringIO(req.text)
+    return pd.read_csv(data)

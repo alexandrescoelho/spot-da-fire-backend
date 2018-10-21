@@ -4,6 +4,8 @@ from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 
+import pygeohash as geohash
+
 
 BRIGHTNESS_CLUSTERS = ['Moderate', 'High', 'Extreme']
 
@@ -63,6 +65,7 @@ def get_brightness_clusters(dataset, clusters_names=BRIGHTNESS_CLUSTERS,
 
     dataset = dataset[['latitude', 'longitude']]
     dataset['cluster'] = spots_brightness['cluster']
+    
     return dataset
 
 

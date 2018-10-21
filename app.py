@@ -5,7 +5,10 @@ import firebase_admin
 from firebase_admin import credentials
 
 from repositories.spoted_fire_repository import SpotedFireRepository
+from repositories.brightness_clustering_repository import BrightnessClusteringRepository
 from util import csvtolist
+
+from ml_models.clustering import get_brightness_clusters
 
 from GeoFire.geofire import GeoFire
 
@@ -30,7 +33,7 @@ def refresh_nasa_data():
         print('last 24h registers %s', fires.__len__())
         app.logger.info('last 24h registers %d', fires.__len__())
         fire_repo = SpotedFireRepository()
-        fire_repo.reset(fires[:1000])
+        fire_repo.reset(fires)
         print('saved %d to db', fires.__len__())
     except Exception as load_data:
         print('something went wrong: %s', load_data)
@@ -63,6 +66,45 @@ def get_fire_collection():
     except Exception as get_collection:
         logging.error('something went wrong', get_collection)
         return '', 500
+
+
+@app.route('/fire/api/v1.0/fetch-brightness-clusters', methods=['GET'])
+def fetch_brightness_clusters():
+    try:
+        lat = request.args.get('lat', default=-5.37895, type=float)
+        lon = request.args.get('lon', default=11.44103, type=float)
+
+        geofire = GeoFire(lat=lat,
+                          lon=lon,
+                          radius=50,
+                          unit='km').config_firebase(cred,
+                                                     auth_domain='nasa-hackathon-team-1.firebaseapp.com',
+                                                     database_URL='https://nasa-hackathon-team-1.firebaseio.com/',
+                                                     storage_bucket='nasa-hackathon-team-1.appspot.com')
+
+        nearby_brigthness_cluster = geofire.query_nearby_objects(query_ref='brightness-clustering',
+                                                             geohash_ref='geohash')
+        return json.dumps(nearby_brigthness_cluster)
+
+    except Exception as get_collection:
+        logging.error('something went wrong', get_collection)
+        return '', 500
+
+
+@app.route('/fire/api/v1.0/refresh-brightness-cluster-data', methods=['GET'])
+def create_save_cluster_data():
+    dataset = csvtolist.get_24h_list()
+    fire_spots = get_brightness_clusters(dataset)
+
+    import pdb; pdb.set_trace()
+    fire_spots['geohash'] = fire_spots.drop(fire_spots.cluster, axis=1).apply(lambda x: geohash.encode(x.latitude, x.longitude, precision=5), axis=1)
+
+    fire_spots = fire_spots.to_dict()
+
+    fire_repo = BrightnessClusteringRepository()
+    fire_repo.reset(fire_spots)
+
+    return '', 201
 
 
 if __name__ == '__main__':
