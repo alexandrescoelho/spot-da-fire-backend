@@ -58,7 +58,7 @@ six==1.11.0
 sklearn==0.0
 smmap2==2.0.5
 tensorboard==1.11.0
-tensorflow==1.11.0
+tensorflow==1.15.0
 termcolor==1.1.0
 tflearn==0.3.2
 uritemplate==3.0.0
